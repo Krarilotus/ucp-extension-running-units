@@ -12,8 +12,3 @@ meta:
 tags:
 - behavior
 - ai
-capabilities:
-  files: false
-  code: true
-  configuration: true
-  options: true

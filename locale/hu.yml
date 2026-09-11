@@ -11,3 +11,5 @@ aic_ignore_run: Futás; MI-személyiségek figyelmen kívül hagyása
 aic_ignore_walk: Eredeti viselkedés; MI-személyiségek figyelmen kívül hagyása
 aic_run_if_not_defined: Alapból futás; MI-személyiségek engedélyezése
 aic_walk_if_not_defined: Alapból eredeti viselkedés; MI-személyiségek engedélyezése
+tags.behavior: Viselkedés
+tags.ai: MI

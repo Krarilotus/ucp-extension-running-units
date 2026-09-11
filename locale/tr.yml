@@ -12,3 +12,5 @@ aic_ignore_walk: Oyun davranışı; yapay zekâ kişiliklerini yok say
 aic_run_if_not_defined: Varsayılan olarak koş; yapay zekâ kişiliklerine izin ver
 aic_walk_if_not_defined: Varsayılan oyun davranışı; yapay zekâ kişiliklerine izin
   ver
+tags.behavior: Davranış
+tags.ai: Yapay zekâ

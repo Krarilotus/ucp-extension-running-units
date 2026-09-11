@@ -11,3 +11,5 @@ aic_ignore_run: Run; ignore AI personalities
 aic_ignore_walk: Game behaviour; ignore AI personalities
 aic_run_if_not_defined: Run by default; allow AI personalities
 aic_walk_if_not_defined: Game behaviour by default; allow AI personalities
+tags.behavior: Behavior
+tags.ai: AI

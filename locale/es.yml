@@ -12,3 +12,5 @@ aic_ignore_walk: Comportamiento del juego; ignorar las personalidades de la IA
 aic_run_if_not_defined: Correr por defecto; permitir personalidades de la IA
 aic_walk_if_not_defined: Comportamiento del juego por defecto; permitir personalidades
   de la IA
+tags.behavior: Comportamiento
+tags.ai: IA
