@@ -10,3 +10,5 @@ aic_ignore_run: 奔跑；忽略 AI 个性设置
 aic_ignore_walk: 游戏原有行为；忽略 AI 个性设置
 aic_run_if_not_defined: 默认奔跑；允许 AI 个性设置覆盖
 aic_walk_if_not_defined: 默认使用游戏原有行为；允许 AI 个性设置覆盖
+tags.behavior: 行为
+tags.ai: 人工智能
