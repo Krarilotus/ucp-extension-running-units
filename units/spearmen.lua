@@ -12,13 +12,15 @@ local SPEARMEN_AIC_VALUES = {
 }
 local spearmenMode = core.allocate(1, true)
 
--- The results of f(aob), or nil when the pattern is not in memory. Other errors are raised.
+-- The results of f(aob), or nil when the framework's AOB cache reports the pattern missing.
+-- Other errors are raised.
 local function find(f, aob)
     local result = table.pack(xpcall(f, debug.traceback, aob))
     if result[1] then
         return table.unpack(result, 2, result.n)
     end
-    if not tostring(result[2]):find("AOB could not be found", 1, true) then
+    local firstLine = tostring(result[2]):match("^[^\n]*")
+    if not firstLine:find("[data/cache]: AOB could not be found: ", 1, true) then
         error(result[2], 0)
     end
 end
@@ -36,10 +38,18 @@ return function(config)
         "0F ? ? I(? ? ? ?) 8B EF 69 ED F4 39 00 00 BA 01 00 00 00 01 ? ? ? ? ? 01 ? ? ? ? ? 51 B9 ? ? ? ? 66 ? ? ? ? ? ? E8 ? ? ? ? 8B ? ? ? ? ?")
     local _, ptrCurrentAIArray = find(utils.AOBExtract,
         "8D ? ? I(? ? ? ?) 6A 04 51 B9 ? ? ? ? E8 ? ? ? ? 8B ? ? ? ? ? 6A 00 6A 00")
-    if beforeCmpLocation == nil or ptrUnitsArray_PlayerID == nil or ptrCurrentAIArray == nil
-        or core.readInteger(beforeCmpLocation + 3) ~= core.readInteger(beforeCmpLocation + 18) then
-        log(WARNING,
-            "Running-Units: the spearmen running code is missing or another module (such as UCP2-Legacy) changed it, running spearmen stay off.")
+    local problem
+    if beforeCmpLocation == nil then
+        problem = "the spearmen running decision is missing or another module (such as UCP2-Legacy or Rebalancer) changed it"
+    elseif core.readInteger(beforeCmpLocation + 3) ~= core.readInteger(beforeCmpLocation + 18) then
+        problem = "the spearmen running decision compares a different unit field than the game's"
+    elseif ptrUnitsArray_PlayerID == nil then
+        problem = "the unit player field was not found"
+    elseif ptrCurrentAIArray == nil then
+        problem = "the current AI array was not found"
+    end
+    if problem ~= nil then
+        log(WARNING, "Running-Units: " .. problem .. ", running spearmen stay off.")
         return
     end
 
@@ -124,7 +134,7 @@ return function(config)
 		pop EAX
 		pop ECX
 		; jumps away; original code isn't run
-		jmp setRunning
+		jmp near setRunning
 
 	  original:
     pop EDI
