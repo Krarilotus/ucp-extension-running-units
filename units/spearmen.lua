@@ -1,14 +1,3 @@
-local function isLegacyOptionSet()
-    local status, ret = pcall(function()
-        return core.AOBScan("74 13 C7 86 ? ? ? ?  81 00 00 00 66 89 86 ? ? ? ? EB 0D 89 86 ? ? ? ? 66 89 BE")
-    end)
-
-    if status ~= true then
-        return true
-    end
-    return false
-end
-
 -- 17 bytes for storing which aic wants running spearmen, 0 is the human
 -- for others, this is the logic: array[aiType] == 1 means run
 -- array[aiType] == 2 means walk
@@ -23,53 +12,38 @@ local SPEARMEN_AIC_VALUES = {
 }
 local spearmenMode = core.allocate(1, true)
 
--- The detour site and the two operands its code reads; nil when one is missing or changed.
-local function findSites()
-    local foundSite, beforeCmpLocation = pcall(core.AOBScan,
-        "66 ? ? ? ? ? ? 74 21 89 ? ? ? ? ? 66 ? ? ? ? ? ? ? 7E 3C")
-    local foundPlayer, _, ptrUnitsArray_PlayerID = pcall(utils.AOBExtract,
-        "0F ? ? I(? ? ? ?) 8B EF 69 ED F4 39 00 00 BA 01 00 00 00 01 ? ? ? ? ? 01 ? ? ? ? ? 51 B9 ? ? ? ? 66 ? ? ? ? ? ? E8 ? ? ? ? 8B ? ? ? ? ?")
-    local foundAI, _, ptrCurrentAIArray = pcall(utils.AOBExtract,
-        "8D ? ? I(? ? ? ?) 6A 04 51 B9 ? ? ? ? E8 ? ? ? ? 8B ? ? ? ? ? 6A 00 6A 00")
-    if foundSite and foundPlayer and foundAI then
-        return beforeCmpLocation, ptrUnitsArray_PlayerID, ptrCurrentAIArray
+-- The results of f(aob), or nil when the pattern is not in memory. Other errors are raised.
+local function find(f, aob)
+    local result = table.pack(xpcall(f, debug.traceback, aob))
+    if result[1] then
+        return table.unpack(result, 2, result.n)
+    end
+    if not tostring(result[2]):find("AOB could not be found", 1, true) then
+        error(result[2], 0)
     end
 end
 
+-- The spearmen running decision: the detour replays its first instruction (cmp word [esi+field],di),
+-- which reads the same field as the cmp at +15, and jumps to the run state at +60. UCP2-Legacy removes
+-- the je at +58 and Rebalancer changes the jle at +23.
+local DECISION = "66 39 BE ? ? ? ? 74 21 89 86 ? ? ? ? 66 83 BE ? ? ? ? 46 7E 3C 66 C7 86 ? ? ? ? FF FF "
+    .. "89 BE ? ? ? ? EB 32 66 39 BE ? ? ? ? 75 1C 66 39 BE ? ? ? ? 74 13 C7 86 ? ? ? ? 81 00 00 00 "
+    .. "66 89 86 ? ? ? ? EB 0D 89 86 ? ? ? ? 66 89 BE"
+
 return function(config)
-    local beforeCmpLocation, ptrUnitsArray_PlayerID, ptrCurrentAIArray = findSites()
-    if isLegacyOptionSet() or beforeCmpLocation == nil then
+    local beforeCmpLocation = find(core.AOBScan, DECISION)
+    local _, ptrUnitsArray_PlayerID = find(utils.AOBExtract,
+        "0F ? ? I(? ? ? ?) 8B EF 69 ED F4 39 00 00 BA 01 00 00 00 01 ? ? ? ? ? 01 ? ? ? ? ? 51 B9 ? ? ? ? 66 ? ? ? ? ? ? E8 ? ? ? ? 8B ? ? ? ? ?")
+    local _, ptrCurrentAIArray = find(utils.AOBExtract,
+        "8D ? ? I(? ? ? ?) 6A 04 51 B9 ? ? ? ? E8 ? ? ? ? 8B ? ? ? ? ? 6A 00 6A 00")
+    if beforeCmpLocation == nil or ptrUnitsArray_PlayerID == nil or ptrCurrentAIArray == nil
+        or core.readInteger(beforeCmpLocation + 3) ~= core.readInteger(beforeCmpLocation + 18) then
         log(WARNING,
-            "Running-Units: another module (such as UCP2-Legacy) already changed spearmen running, running spearmen stay off.")
+            "Running-Units: the spearmen running code is missing or another module (such as UCP2-Legacy) changed it, running spearmen stay off.")
         return
     end
 
     log(VERBOSE, "enable spearmen running")
-    -- Register in the aicloader that we provide an extra value
-    modules.aicloader:setAdditionalAICValue(
-        SPEARMEN_AIC_KEY,
-        -- set
-        function(aiType, aicValue)
-            if type(aicValue) ~= "number" then
-                log(WARNING,
-                    string.format("Cannot set AIC '%s', invalid value: %s", SPEARMEN_AIC_KEY, tostring(aicValue)))
-            else
-                if config.spearmen.running.ai ~= "aic_ignore_run" and config.spearmen.running.ai ~= "aic_ignore_walk" then
-                    log(VERBOSE,
-                        string.format("Setting %s for ai #%s to value '%s'", SPEARMEN_AIC_KEY, aiType,
-                            tostring(SPEARMEN_AIC_VALUES[aicValue])))
-                    core.writeByte(aicRunningSpearmen + aiType, aicValue)
-                else
-                    log(WARNING,
-                        string.format("Did not set AIC '%s', aic value is ignored", SPEARMEN_AIC_KEY))
-                end
-            end
-        end,
-        -- reset
-        function(aiType)
-            core.writeByte(aicRunningSpearmen + aiType, 0)
-        end
-    )
 
     -- Location for the detour
     -- ESI contains units offset for current unit ID
@@ -168,4 +142,30 @@ return function(config)
             ptrUnitsArray_PlayerID = ptrUnitsArray_PlayerID,
         }),
     }, nil, 'after')
+
+    -- Register in the aicloader that we provide an extra value, once the detour is in place
+    modules.aicloader:setAdditionalAICValue(
+        SPEARMEN_AIC_KEY,
+        -- set
+        function(aiType, aicValue)
+            if type(aicValue) ~= "number" then
+                log(WARNING,
+                    string.format("Cannot set AIC '%s', invalid value: %s", SPEARMEN_AIC_KEY, tostring(aicValue)))
+            else
+                if config.spearmen.running.ai ~= "aic_ignore_run" and config.spearmen.running.ai ~= "aic_ignore_walk" then
+                    log(VERBOSE,
+                        string.format("Setting %s for ai #%s to value '%s'", SPEARMEN_AIC_KEY, aiType,
+                            tostring(SPEARMEN_AIC_VALUES[aicValue])))
+                    core.writeByte(aicRunningSpearmen + aiType, aicValue)
+                else
+                    log(WARNING,
+                        string.format("Did not set AIC '%s', aic value is ignored", SPEARMEN_AIC_KEY))
+                end
+            end
+        end,
+        -- reset
+        function(aiType)
+            core.writeByte(aicRunningSpearmen + aiType, 0)
+        end
+    )
 end
