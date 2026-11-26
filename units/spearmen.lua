@@ -25,8 +25,9 @@ local spearmenMode = core.allocate(1, true)
 
 return function(config)
     if isLegacyOptionSet() then
-        error(
-            "Running-Units detected the ucp2-legacy spearmen running feature is enabled and the spearmen running feature from Running-Units is enabled. Choose one.")
+        log(WARNING,
+            "Running-Units: another module (such as UCP2-Legacy) already changed spearmen running, running spearmen stay off.")
+        return
     end
 
     log(VERBOSE, "enable spearmen running")
