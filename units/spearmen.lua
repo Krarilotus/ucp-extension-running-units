@@ -23,8 +23,22 @@ local SPEARMEN_AIC_VALUES = {
 }
 local spearmenMode = core.allocate(1, true)
 
+-- The detour site and the two operands its code reads; nil when one is missing or changed.
+local function findSites()
+    local foundSite, beforeCmpLocation = pcall(core.AOBScan,
+        "66 ? ? ? ? ? ? 74 21 89 ? ? ? ? ? 66 ? ? ? ? ? ? ? 7E 3C")
+    local foundPlayer, _, ptrUnitsArray_PlayerID = pcall(utils.AOBExtract,
+        "0F ? ? I(? ? ? ?) 8B EF 69 ED F4 39 00 00 BA 01 00 00 00 01 ? ? ? ? ? 01 ? ? ? ? ? 51 B9 ? ? ? ? 66 ? ? ? ? ? ? E8 ? ? ? ? 8B ? ? ? ? ?")
+    local foundAI, _, ptrCurrentAIArray = pcall(utils.AOBExtract,
+        "8D ? ? I(? ? ? ?) 6A 04 51 B9 ? ? ? ? E8 ? ? ? ? 8B ? ? ? ? ? 6A 00 6A 00")
+    if foundSite and foundPlayer and foundAI then
+        return beforeCmpLocation, ptrUnitsArray_PlayerID, ptrCurrentAIArray
+    end
+end
+
 return function(config)
-    if isLegacyOptionSet() then
+    local beforeCmpLocation, ptrUnitsArray_PlayerID, ptrCurrentAIArray = findSites()
+    if isLegacyOptionSet() or beforeCmpLocation == nil then
         log(WARNING,
             "Running-Units: another module (such as UCP2-Legacy) already changed spearmen running, running spearmen stay off.")
         return
@@ -64,10 +78,8 @@ return function(config)
     -- ECX should be restored
     -- EAX should be restored
     -- EDI should be restored
-    -- 0x0055e044
-    local beforeCmpLocation = core.AOBScan("66 ? ? ? ? ? ? 74 21 89 ? ? ? ? ? 66 ? ? ? ? ? ? ? 7E 3C")
     local detourSize = 7
-    local setRunning = beforeCmpLocation + 60 -- 0x0055e080
+    local setRunning = beforeCmpLocation + 60
 
     if config.spearmen.running.ai == "aic_ignore_run" then
         -- Set to always run without caring about AIC
@@ -105,11 +117,6 @@ return function(config)
         error(string.format("Invalid option: %s", config.spearmen.running.ai))
     end
 
-    local _, ptrUnitsArray_PlayerID = utils.AOBExtract(
-        "0F ? ? I(? ? ? ?) 8B EF 69 ED F4 39 00 00 BA 01 00 00 00 01 ? ? ? ? ? 01 ? ? ? ? ? 51 B9 ? ? ? ? 66 ? ? ? ? ? ? E8 ? ? ? ? 8B ? ? ? ? ?"
-    )
-    local _, ptrCurrentAIArray = utils.AOBExtract(
-        "8D ? ? I(? ? ? ?) 6A 04 51 B9 ? ? ? ? E8 ? ? ? ? 8B ? ? ? ? ? 6A 00 6A 00")
     local asm = [[
 		push ECX
 		push EAX
