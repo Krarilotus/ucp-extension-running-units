@@ -35,6 +35,7 @@ end
 local function register(key, address, allowAIC, resetAction)
     modules.aicloader:setAdditionalAICValue(key,
         function(aiType, value)
+            if value == nil then return core.readByte(address + aiType) end
             if type(value) ~= "number" then
                 log(ERROR, "AIC '" .. key .. "' must be a number.")
                 value = resetAction
