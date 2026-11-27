@@ -49,6 +49,7 @@ return function(config)
         problem = "the current AI array was not found"
     end
     if problem ~= nil then
+        log(ERROR, "Running spearmen is off. The run decision could not be verified.")
         log(WARNING, "Running-Units: " .. problem .. ", running spearmen stay off.")
         return
     end
