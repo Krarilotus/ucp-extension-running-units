@@ -68,5 +68,5 @@ return function(config)
         }),
     }, nil, 'after')
 
-    settings.register(SLAVES_AIC_KEY, aicRunningSlaves, allowAIC, allowAIC and 0 or defaultAction)
+    settings.register(SLAVES_AIC_KEY, aicRunningSlaves, allowAIC, defaultAction)
 end

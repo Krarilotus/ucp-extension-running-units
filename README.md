@@ -26,7 +26,7 @@ Units**. The section starts collapsed. Expand the Running Units card, then enabl
 Each unit has a separate rule for AI lords. “Run by default” and “Use game
 behaviour by default” let the AI personality override the rule. “Always run”
 and “Always use game behaviour” use the same rule for every AI. The menu supports all nine GUI
-languages. The spearmen patch requires framework 3.0.8.
+languages. Running Units requires framework 3.0.8.
 
 ## Support
 All support is welcome!

@@ -67,5 +67,5 @@ return function(config)
         }),
     }, nil, 'after')
 
-    settings.register(MACEMEN_AIC_KEY, aicRunningMacemen, allowAIC, allowAIC and 0 or defaultAction)
+    settings.register(MACEMEN_AIC_KEY, aicRunningMacemen, allowAIC, defaultAction)
 end

@@ -37,9 +37,8 @@ local function register(key, address, allowAIC, resetAction)
         function(aiType, value)
             if type(value) ~= "number" then
                 log(ERROR, "AIC '" .. key .. "' must be a number.")
-                return
-            end
-            if value ~= 0 and value ~= 1 and value ~= 2 then
+                value = resetAction
+            elseif value ~= 0 and value ~= 1 and value ~= 2 then
                 log(WARNING, "Invalid AIC '" .. key .. "': " .. tostring(value))
                 value = resetAction
             end

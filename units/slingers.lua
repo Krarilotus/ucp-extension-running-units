@@ -67,5 +67,5 @@ return function(config)
         }),
     }, nil, 'after')
 
-    settings.register(SLINGERS_AIC_KEY, aicRunningSlingers, allowAIC, allowAIC and 0 or defaultAction)
+    settings.register(SLINGERS_AIC_KEY, aicRunningSlingers, allowAIC, defaultAction)
 end
