@@ -22,8 +22,10 @@ Note that for spearmen, there is a conflicting option in the UCP2-Legacy plugin 
 ## Customizations menu
 
 Version 1.0.3 requires GUI 1.0.16. Open **General → Balance Changes → Running
-Units**. The section starts collapsed. Each troop uses the same sword switch as
-UCP2-Legacy; its AI choices collapse with it. The menu supports all nine GUI
+Units**. The section starts collapsed. Expand the Running Units card, then enable the unit types you want to run.
+Each unit has a separate rule for AI lords. “Run by default” and “Use game
+behaviour by default” let the AI personality override the rule. “Always run”
+and “Always use game behaviour” use the same rule for every AI. The menu supports all nine GUI
 languages. Runtime code, configuration keys, defaults and the existing required-off
 rule for UCP2-Legacy running spearmen are unchanged.
 
