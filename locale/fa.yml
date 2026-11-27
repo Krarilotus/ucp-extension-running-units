@@ -9,6 +9,6 @@ spearmen_running_general: نیزه‌داران می‌توانند بدوند
 aic_ignore_run: همیشه بدوند
 aic_ignore_walk: همیشه رفتار اصلی بازی
 aic_run_if_not_defined: دویدن به پیش‌فرض (با امکان بازنویسی هوش مصنوعی)
-aic_walk_if_not_defined: رفتار بازی به پیش‌فرض (با امکان بازنویسی هوش مصنوعی)
+aic_walk_if_not_defined: رفتار پیش‌فرض بازی (قابل تغییر برای هر هوش مصنوعی)
 tags.behavior: رفتار
 tags.ai: هوش مصنوعی

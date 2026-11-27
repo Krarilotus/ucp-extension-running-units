@@ -1,28 +1,38 @@
--- 17 bytes for storing which aic wants running spearmen, 0 is the human
--- for others, this is the logic: array[aiType] == 1 means run
--- array[aiType] == 2 means walk
--- array[aiType] == 0 means vanilla (aka don't set)
-local aicRunningSpearmen = core.allocate(17 * 1, true) -- 17 bytes
-
 local SPEARMEN_AIC_KEY = "RunningUnits_Spearmen"
 local SPEARMEN_AIC_VALUES = {
     [0] = "vanilla",
     [1] = "run",
     [2] = "walk",
 }
-local spearmenMode = core.allocate(1, true)
+local DEFAULT_ACTIONS = {
+    aic_ignore_run = 1,
+    aic_ignore_walk = 0,
+    aic_run_if_not_defined = 1,
+    aic_walk_if_not_defined = 0,
+}
 
--- The spearmen running decision: the detour replays its first instruction (cmp word [esi+field],di),
--- which reads the same field as the cmp at +15, and jumps to the run state at +60. UCP2-Legacy removes
--- the je at +58 and Rebalancer changes the jle at +23.
+-- The detour replays the first comparison for the game's own decision.
+-- The run and walk branches at +60 and +79 both set the movement state and destination field.
 local DECISION = "66 39 BE ? ? ? ? 74 21 89 86 ? ? ? ? 66 83 BE ? ? ? ? 46 7E 3C 66 C7 86 ? ? ? ? FF FF "
     .. "89 BE ? ? ? ? EB 32 66 39 BE ? ? ? ? 75 1C 66 39 BE ? ? ? ? 74 13 C7 86 ? ? ? ? 81 00 00 00 "
-    .. "66 89 86 ? ? ? ? EB 0D 89 86 ? ? ? ? 66 89 BE"
+    .. "66 89 86 ? ? ? ? EB 0D 89 86 ? ? ? ? 66 89 BE ? ? ? ?"
 
 local PLAYER_ID = "0F ? ? ? ? ? ? 8B EF 69 ED F4 39 00 00 BA 01 00 00 00 01 ? ? ? ? ? 01 ? ? ? ? ? 51 B9 ? ? ? ? 66 ? ? ? ? ? ? E8 ? ? ? ? 8B ? ? ? ? ?"
 local CURRENT_AI = "8D ? ? ? ? ? ? 6A 04 51 B9 ? ? ? ? E8 ? ? ? ? 8B ? ? ? ? ? 6A 00 6A 00"
 
 return function(config)
+    local rule = config.spearmen.running.ai
+    if type(rule) ~= "string" then
+        log(ERROR, "Running spearmen is off: the AI running rule must be a string.")
+        return
+    end
+    local defaultAction = DEFAULT_ACTIONS[rule]
+    if defaultAction == nil then
+        log(WARNING, "Running spearmen is off: unknown AI running rule " .. rule .. ".")
+        return
+    end
+    local allowAIC = rule ~= "aic_ignore_run" and rule ~= "aic_ignore_walk"
+
     local beforeCmpLocation, reason = core.AOBScanUnique(DECISION)
     if beforeCmpLocation == nil then
         log(ERROR, "Running spearmen is off: run decision " .. reason .. ".")
@@ -30,6 +40,11 @@ return function(config)
     end
     if core.readInteger(beforeCmpLocation + 3) ~= core.readInteger(beforeCmpLocation + 18) then
         log(ERROR, "Running spearmen is off: run decision compares different unit fields.")
+        return
+    end
+    if core.readInteger(beforeCmpLocation + 62) ~= core.readInteger(beforeCmpLocation + 81)
+        or core.readInteger(beforeCmpLocation + 73) ~= core.readInteger(beforeCmpLocation + 88) then
+        log(ERROR, "Running spearmen is off: run and walk branches write different unit fields.")
         return
     end
     local playerID, playerIDReason = core.AOBScanUnique(PLAYER_ID)
@@ -57,41 +72,15 @@ return function(config)
     local detourSize = 7
     local setRunning = beforeCmpLocation + 60
 
-    if config.spearmen.running.ai == "aic_ignore_run" then
-        -- Set to always run without caring about AIC
-        core.writeBytes(aicRunningSpearmen, {
-            1, 1, 1, 1, 1,
-            1, 1, 1, 1, 1,
-            1, 1, 1, 1, 1,
-            1, 1,
-        })
-    elseif config.spearmen.running.ai == "aic_ignore_walk" then
-        -- Do nothing?, this is the vanilla situation
-        core.writeBytes(aicRunningSpearmen, {
-            2, 2, 2, 2, 2,
-            2, 2, 2, 2, 2,
-            2, 2, 2, 2, 2,
-            2, 2,
-        })
-    elseif config.spearmen.running.ai == "aic_run_if_not_defined" then
-        -- If AIC didn't define, assume run
-        core.writeBytes(aicRunningSpearmen, {
-            1, 1, 1, 1, 1,
-            1, 1, 1, 1, 1,
-            1, 1, 1, 1, 1,
-            1, 1,
-        })
-    elseif config.spearmen.running.ai == "aic_walk_if_not_defined" then
-        -- If AIC didn't define, assume walk
-        core.writeBytes(aicRunningSpearmen, {
-            2, 2, 2, 2, 2,
-            2, 2, 2, 2, 2,
-            2, 2, 2, 2, 2,
-            2, 2,
-        })
-    else
-        error(string.format("Invalid option: %s", config.spearmen.running.ai))
+    local setWalking = beforeCmpLocation + 79
+
+    -- One byte per AI type, including index 0 for the human player.
+    local aicRunningSpearmen = core.allocate(17, true)
+    local actions = {}
+    for index = 1, 17 do
+        actions[index] = defaultAction
     end
+    core.writeBytes(aicRunningSpearmen, actions)
 
     local asm = [[
 		push ECX
@@ -113,10 +102,8 @@ return function(config)
 		; get configured action for aiType
 		xor ECX, ECX
 		mov CL, BYTE [EAX*1 + aicRunningSpearmen]
-		cmp ECX, 0
-		je original
 		cmp ECX, 2
-		je original
+		je walking
 		cmp ECX, 1
 		jne original
 
@@ -127,6 +114,12 @@ return function(config)
 		pop ECX
 		; jumps away; original code isn't run
 		jmp near setRunning
+
+	  walking:
+		pop EDI
+		pop EAX
+		pop ECX
+		jmp near setWalking
 
 	  original:
     pop EDI
@@ -141,6 +134,7 @@ return function(config)
             ptrCurrentAIArray = ptrCurrentAIArray,
             aicRunningSpearmen = aicRunningSpearmen,
             setRunning = setRunning,
+            setWalking = setWalking,
             ptrUnitsArray_PlayerID = ptrUnitsArray_PlayerID,
         }),
     }, nil, 'after')
@@ -151,23 +145,20 @@ return function(config)
         -- set
         function(aiType, aicValue)
             if type(aicValue) ~= "number" then
-                log(WARNING,
-                    string.format("Cannot set AIC '%s', invalid value: %s", SPEARMEN_AIC_KEY, tostring(aicValue)))
+                log(ERROR, "AIC '" .. SPEARMEN_AIC_KEY .. "' must be a number.")
+            elseif SPEARMEN_AIC_VALUES[aicValue] == nil then
+                log(WARNING, "Invalid AIC '" .. SPEARMEN_AIC_KEY .. "': " .. tostring(aicValue))
+            elseif not allowAIC then
+                log(WARNING, "Did not set AIC '" .. SPEARMEN_AIC_KEY .. "': the launcher rule takes precedence.")
             else
-                if config.spearmen.running.ai ~= "aic_ignore_run" and config.spearmen.running.ai ~= "aic_ignore_walk" then
-                    log(VERBOSE,
-                        string.format("Setting %s for ai #%s to value '%s'", SPEARMEN_AIC_KEY, aiType,
-                            tostring(SPEARMEN_AIC_VALUES[aicValue])))
-                    core.writeByte(aicRunningSpearmen + aiType, aicValue)
-                else
-                    log(WARNING,
-                        string.format("Did not set AIC '%s', aic value is ignored", SPEARMEN_AIC_KEY))
-                end
+                log(VERBOSE, string.format("Setting %s for ai #%s to '%s'", SPEARMEN_AIC_KEY, aiType,
+                    SPEARMEN_AIC_VALUES[aicValue]))
+                core.writeByte(aicRunningSpearmen + aiType, aicValue)
             end
         end,
         -- reset
         function(aiType)
-            core.writeByte(aicRunningSpearmen + aiType, 0)
+            core.writeByte(aicRunningSpearmen + aiType, defaultAction)
         end
     )
 end

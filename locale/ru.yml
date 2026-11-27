@@ -2,7 +2,7 @@ balance_changes: Изменения баланса
 title: Бегущие воины
 general_descr: Выберите, какие отряды могут бегать, затем задайте правило бега для каждого вида войск ИИ.
 ai_rules: Бег для войск ИИ
-macemen_running_general: Булавоносцы могут бегать
+macemen_running_general: Пехотинцы с булавами могут бегать
 slingers_running_general: Пращники могут бегать
 slaves_running_general: Рабы могут бегать
 spearmen_running_general: Копейщики могут бегать
