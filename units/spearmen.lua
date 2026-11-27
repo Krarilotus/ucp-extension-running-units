@@ -12,19 +12,6 @@ local SPEARMEN_AIC_VALUES = {
 }
 local spearmenMode = core.allocate(1, true)
 
--- The results of f(aob), or nil when the framework's AOB cache reports the pattern missing.
--- Other errors are raised.
-local function find(f, aob)
-    local result = table.pack(xpcall(f, debug.traceback, aob))
-    if result[1] then
-        return table.unpack(result, 2, result.n)
-    end
-    local firstLine = tostring(result[2]):match("^[^\n]*")
-    if not firstLine:find("[data/cache]: AOB could not be found: ", 1, true) then
-        error(result[2], 0)
-    end
-end
-
 -- The spearmen running decision: the detour replays its first instruction (cmp word [esi+field],di),
 -- which reads the same field as the cmp at +15, and jumps to the run state at +60. UCP2-Legacy removes
 -- the je at +58 and Rebalancer changes the jle at +23.
@@ -32,27 +19,31 @@ local DECISION = "66 39 BE ? ? ? ? 74 21 89 86 ? ? ? ? 66 83 BE ? ? ? ? 46 7E 3C
     .. "89 BE ? ? ? ? EB 32 66 39 BE ? ? ? ? 75 1C 66 39 BE ? ? ? ? 74 13 C7 86 ? ? ? ? 81 00 00 00 "
     .. "66 89 86 ? ? ? ? EB 0D 89 86 ? ? ? ? 66 89 BE"
 
+local PLAYER_ID = "0F ? ? ? ? ? ? 8B EF 69 ED F4 39 00 00 BA 01 00 00 00 01 ? ? ? ? ? 01 ? ? ? ? ? 51 B9 ? ? ? ? 66 ? ? ? ? ? ? E8 ? ? ? ? 8B ? ? ? ? ?"
+local CURRENT_AI = "8D ? ? ? ? ? ? 6A 04 51 B9 ? ? ? ? E8 ? ? ? ? 8B ? ? ? ? ? 6A 00 6A 00"
+
 return function(config)
-    local beforeCmpLocation = find(core.AOBScan, DECISION)
-    local _, ptrUnitsArray_PlayerID = find(utils.AOBExtract,
-        "0F ? ? I(? ? ? ?) 8B EF 69 ED F4 39 00 00 BA 01 00 00 00 01 ? ? ? ? ? 01 ? ? ? ? ? 51 B9 ? ? ? ? 66 ? ? ? ? ? ? E8 ? ? ? ? 8B ? ? ? ? ?")
-    local _, ptrCurrentAIArray = find(utils.AOBExtract,
-        "8D ? ? I(? ? ? ?) 6A 04 51 B9 ? ? ? ? E8 ? ? ? ? 8B ? ? ? ? ? 6A 00 6A 00")
-    local problem
+    local beforeCmpLocation, reason = core.AOBScanUnique(DECISION)
     if beforeCmpLocation == nil then
-        problem = "the spearmen running decision is missing or another module (such as UCP2-Legacy or Rebalancer) changed it"
-    elseif core.readInteger(beforeCmpLocation + 3) ~= core.readInteger(beforeCmpLocation + 18) then
-        problem = "the spearmen running decision compares a different unit field than the game's"
-    elseif ptrUnitsArray_PlayerID == nil then
-        problem = "the unit player field was not found"
-    elseif ptrCurrentAIArray == nil then
-        problem = "the current AI array was not found"
-    end
-    if problem ~= nil then
-        log(ERROR, "Running spearmen is off. The run decision could not be verified.")
-        log(WARNING, "Running-Units: " .. problem .. ", running spearmen stay off.")
+        log(ERROR, "Running spearmen is off: run decision " .. reason .. ".")
         return
     end
+    if core.readInteger(beforeCmpLocation + 3) ~= core.readInteger(beforeCmpLocation + 18) then
+        log(ERROR, "Running spearmen is off: run decision compares different unit fields.")
+        return
+    end
+    local playerID, playerIDReason = core.AOBScanUnique(PLAYER_ID)
+    if playerID == nil then
+        log(ERROR, "Running spearmen is off: unit player field " .. playerIDReason .. ".")
+        return
+    end
+    local currentAI, currentAIReason = core.AOBScanUnique(CURRENT_AI)
+    if currentAI == nil then
+        log(ERROR, "Running spearmen is off: current AI array " .. currentAIReason .. ".")
+        return
+    end
+    local ptrUnitsArray_PlayerID = core.readInteger(playerID + 3)
+    local ptrCurrentAIArray = core.readInteger(currentAI + 3)
 
     log(VERBOSE, "enable spearmen running")
 
