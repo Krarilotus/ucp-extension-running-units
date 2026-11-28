@@ -12,3 +12,4 @@ aic_run_if_not_defined: Correr por defecto (permitir sobrescritura de la IA)
 aic_walk_if_not_defined: Comportamiento del juego por defecto (permitir sobrescritura de la IA)
 tags.behavior: Comportamiento
 tags.ai: IA
+cat_units_armour: Movimiento y armadura de unidades

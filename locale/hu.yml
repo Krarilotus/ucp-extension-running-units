@@ -12,3 +12,4 @@ aic_run_if_not_defined: Alapértelmezés szerint futnak (MI felülírhatja)
 aic_walk_if_not_defined: Alapértelmezés szerint a játék viselkedése (MI felülírhatja)
 tags.behavior: Viselkedés
 tags.ai: MI
+cat_units_armour: Egységmozgás és páncél

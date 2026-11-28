@@ -12,3 +12,4 @@ aic_run_if_not_defined: "Run by default (allow AI overrides)"
 aic_walk_if_not_defined: "Use game behaviour by default (allow AI overrides)"
 tags.behavior: Behavior
 tags.ai: AI
+cat_units_armour: Unit movement and armour

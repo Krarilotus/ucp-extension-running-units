@@ -12,3 +12,4 @@ aic_run_if_not_defined: Courir par défaut (remplacement IA autorisé)
 aic_walk_if_not_defined: Comportement du jeu par défaut (remplacement IA autorisé)
 tags.behavior: Comportement
 tags.ai: IA
+cat_units_armour: Déplacement et armure des unités

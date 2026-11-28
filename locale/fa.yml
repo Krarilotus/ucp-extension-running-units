@@ -12,3 +12,4 @@ aic_run_if_not_defined: دویدن به پیش‌فرض (با امکان باز�
 aic_walk_if_not_defined: رفتار پیش‌فرض بازی (قابل تغییر برای هر هوش مصنوعی)
 tags.behavior: رفتار
 tags.ai: هوش مصنوعی
+cat_units_armour: حرکت و زره نیروها

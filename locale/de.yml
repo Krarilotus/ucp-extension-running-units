@@ -12,3 +12,4 @@ aic_run_if_not_defined: Standardmäßig rennen (KI-Überschreibung erlaubt)
 aic_walk_if_not_defined: Standardmäßig Spielverhalten (KI-Überschreibung erlaubt)
 tags.behavior: Verhalten
 tags.ai: KI
+cat_units_armour: Truppenbewegung und Rüstung

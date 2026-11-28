@@ -12,3 +12,4 @@ aic_run_if_not_defined: Varsayılan olarak koş (yapay zekâ geçersiz kılabili
 aic_walk_if_not_defined: Varsayılan olarak oyun davranışı (yapay zekâ geçersiz kılabilir)
 tags.behavior: Davranış
 tags.ai: Yapay zekâ
+cat_units_armour: Birlik hareketi ve zırh

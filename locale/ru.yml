@@ -12,3 +12,4 @@ aic_run_if_not_defined: Бегать по умолчанию (ИИ может п
 aic_walk_if_not_defined: Поведение игры по умолчанию (ИИ может переопределить)
 tags.behavior: Поведение
 tags.ai: ИИ
+cat_units_armour: Передвижение и броня войск
