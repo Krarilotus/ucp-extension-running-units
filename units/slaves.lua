@@ -5,9 +5,9 @@ local SLAVES_AIC_KEY = "RunningUnits_Slaves"
 return function(config)
     local defaultAction, allowAIC = settings.rule("slaves", config.slaves.running.ai, 2)
 
-    local beforeCmpLocation, reason = core.AOBScanUnique("0F B7 86 ? ? ? ? 66 3B C7 74 17")
-    if not beforeCmpLocation then
-        log(ERROR, "Running slaves is off: run decision " .. reason .. ".")
+    local ok, beforeCmpLocation = pcall(core.AOBScan, "0F B7 86 ? ? ? ? 66 3B C7 74 17")
+    if not ok then
+        log(ERROR, "Running slaves is off: run decision not found.")
         return
     end
     local ptrCurrentAIArray, aiReason = settings.currentAI()

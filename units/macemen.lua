@@ -5,9 +5,9 @@ local MACEMEN_AIC_KEY = "RunningUnits_Macemen"
 return function(config)
     local defaultAction, allowAIC = settings.rule("macemen", config.macemen.running.ai, 2)
 
-    local beforeCmpLocation, reason = core.AOBScanUnique("66 39 8E ? ? ? ? 75 37 66 ? ? ? ? ? ? 75 1B")
-    if not beforeCmpLocation then
-        log(ERROR, "Running macemen is off: run decision " .. reason .. ".")
+    local ok, beforeCmpLocation = pcall(core.AOBScan, "66 39 8E ? ? ? ? 75 37 66 ? ? ? ? ? ? 75 1B")
+    if not ok then
+        log(ERROR, "Running macemen is off: run decision not found.")
         return
     end
     local ptrCurrentAIArray, aiReason = settings.currentAI()

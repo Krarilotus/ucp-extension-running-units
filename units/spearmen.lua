@@ -13,9 +13,9 @@ local PLAYER_ID = "0F ? ? ? ? ? ? 8B EF 69 ED F4 39 00 00 BA 01 00 00 00 01 ? ? 
 return function(config)
     local defaultAction, allowAIC = settings.rule("spearmen", config.spearmen.running.ai, 0)
 
-    local beforeCmpLocation, reason = core.AOBScanUnique(DECISION)
-    if beforeCmpLocation == nil then
-        log(ERROR, "Running spearmen is off: run decision " .. reason .. ".")
+    local ok, beforeCmpLocation = pcall(core.AOBScan, DECISION)
+    if not ok then
+        log(ERROR, "Running spearmen is off: run decision not found.")
         return
     end
     if core.readInteger(beforeCmpLocation + 3) ~= core.readInteger(beforeCmpLocation + 18) then
@@ -27,9 +27,9 @@ return function(config)
         log(ERROR, "Running spearmen is off: run and walk branches write different unit fields.")
         return
     end
-    local playerID, playerIDReason = core.AOBScanUnique(PLAYER_ID)
-    if playerID == nil then
-        log(ERROR, "Running spearmen is off: unit player field " .. playerIDReason .. ".")
+    local playerIDOk, playerID = pcall(core.AOBScan, PLAYER_ID)
+    if not playerIDOk then
+        log(ERROR, "Running spearmen is off: unit player field not found.")
         return
     end
     local ptrCurrentAIArray, reason = settings.currentAI()

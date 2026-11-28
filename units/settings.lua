@@ -17,11 +17,10 @@ end
 
 local function currentAI()
     if not aiArray and not aiReason then
-        local site
-        site, aiReason = core.AOBScanUnique(CURRENT_AI)
-        if site then aiArray = core.readInteger(site + 3) end
+        local ok, site = pcall(core.AOBScan, CURRENT_AI)
+        if ok then aiArray = core.readInteger(site + 3) else aiReason = "not found" end
     end
-    return aiArray, aiReason or "address unavailable"
+    return aiArray, aiReason
 end
 
 local function allocate(defaultAction)
